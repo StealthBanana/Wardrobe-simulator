@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set active = "dressing_room" %}
+{% block title %}Choose a Photo — DressRoom{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Choose Your Photo</h1>
+      <p class="page-sub">Pick which photo you'd like to dress today.</p>
+    </div>
+    <a class="btn-ghost" href="{{ url_for('wardrobe') }}">
+      <i class="bi bi-arrow-left me-1"></i>Back to Wardrobe
+    </a>
+  </div>
+
+  <div class="item-grid photo-select-grid">
+    {% for photo in person_photos %}
+    <a class="photo-select-card" href="{{ url_for('dressing_room', person_id=photo.id) }}">
+      <div class="photo-select-img">
+        {% if photo.processed_filename %}
+        <img src="{{ url_for('static', filename='uploads/person_processed/' ~ photo.processed_filename) }}"
+             alt="{{ photo.name }}">
+        {% else %}
+        <div class="item-placeholder"><i class="bi bi-person fs-1"></i></div>
+        {% endif %}
+        <div class="photo-select-overlay">
+          <i class="bi bi-scissors fs-3"></i>
+          <span>Try On</span>
+        </div>
+      </div>
+      <div class="item-card-foot">
+        <p class="item-name">{{ photo.name }}</p>
+        <span class="item-cat" style="color:{% if photo.pose_data %}var(--success){% else %}var(--text-muted){% endif %}">
+          {% if photo.pose_data %}<i class="bi bi-person-check me-1"></i>Pose Ready{% else %}No pose data{% endif %}
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <p class="text-center mt-4" style="color:var(--text-muted);font-size:.85rem;">
+    Need to add a photo? <a href="{{ url_for('wardrobe') }}" style="color:var(--accent)">Go to Wardrobe →</a>
+  </p>
+</div>
+{% endblock %}

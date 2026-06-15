@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% set active = "wardrobe" %}
+{% block title %}Wardrobe — DressRoom{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+  <!-- ── Page header ──────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Wardrobe</h1>
+      <p class="page-sub">Add clothes and photos, then head to the Dressing Room to try things on.</p>
+    </div>
+    <a class="btn-accent" href="{{ url_for('dressing_room_select') }}">
+      <i class="bi bi-person-bounding-box me-2"></i>Dressing Room
+    </a>
+  </div>
+
+  {% if request.args.get('hint') == 'photo' %}
+  <div class="dr-info-banner">
+    <i class="bi bi-info-circle me-2"></i>
+    Upload a photo of yourself below, then come back to the Dressing Room to try clothes on.
+  </div>
+  {% endif %}
+
+  <div id="alert-container"></div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════ -->
+  <!-- CLOTHES                                                               -->
+  <!-- ═════════════════════════════════════════════════════════════════════ -->
+  <section class="wardrobe-section">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Clothes
+          <span class="section-count">{{ clothing_items|length }}</span>
+        </h2>
+      </div>
+      <button class="btn-accent" id="btnOpenAddClothing">
+        <i class="bi bi-plus-lg me-1"></i>Add Item
+      </button>
+    </div>
+
+    <!-- Category filter pills -->
+    <div class="filter-row" id="categoryFilters">
+      <button class="filter-pill active" data-cat="all">All</button>
+      {% for cat in categories %}
+      <button class="filter-pill" data-cat="{{ cat }}">
+        {{ cat.replace('_',' ').title() }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Drop zone -->
+    <div class="dropzone" id="clothingDropzone" tabindex="0" role="button"
+         aria-label="Upload clothing image">
+      <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+      <p><strong>Drop a photo here</strong> or click to browse</p>
+      <p class="dropzone-hint">JPG · PNG · WebP &nbsp;·&nbsp; max 16 MB</p>
+      <input type="file" id="clothingFileInput" accept=".jpg,.jpeg,.png,.webp" hidden multiple>
+    </div>
+
+    <!-- Grid -->
+    <div class="item-grid" id="clothingGrid">
+      {% if not clothing_items %}
+      <div class="empty-state" id="clothingEmpty">
+        <i class="bi bi-bag-x empty-icon"></i>
+        <p class="empty-title">No clothes yet</p>
+        <p class="empty-sub">Upload an item above to get started.</p>
+      </div>
+      {% endif %}
+
+      {% for item in clothing_items %}
+      <div class="item-col{% if item.is_default %} is-default{% endif %}"
+           id="ci-{{ item.id }}" data-cat="{{ item.category }}">
+        <div class="item-card">
+          <div class="item-card-img">
+            {% if item.thumbnail_filename %}
+            <img src="{{ url_for('static', filename='uploads/clothing_processed/' ~ item.thumbnail_filename) }}"
+                 alt="{{ item.name }}" loading="lazy">
+            {% else %}
+            <div class="item-placeholder"><i class="bi bi-image"></i></div>
+            {% endif %}
+
+            <div class="item-card-overlay">
+              <button class="btn-icon-red" data-id="{{ item.id }}"
+                      onclick="deleteClothing({{ item.id }})" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+            {% if item.is_default %}
+            <span class="starter-badge">Starter</span>
+            {% endif %}
+          </div>
+          <div class="item-card-foot">
+            <p class="item-name" title="{{ item.name }}">{{ item.name }}</p>
+            <span class="item-cat">{{ item.category.replace('_',' ').title() }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════ -->
+  <!-- MY PHOTOS                                                             -->
+  <!-- ═════════════════════════════════════════════════════════════════════ -->
+  <section class="wardrobe-section">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">My Photos
+          <span class="section-count">{{ person_photos|length }}</span>
+        </h2>
+        <p class="section-sub-text">Upload a full-body photo of yourself to try clothes on</p>
+      </div>
+      <button class="btn-accent" id="btnOpenAddPerson">
+        <i class="bi bi-person-plus me-1"></i>Add Photo
+      </button>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="dropzone" id="personDropzone" tabindex="0" role="button"
+         aria-label="Upload your photo">
+      <i class="bi bi-person-bounding-box dropzone-icon"></i>
+      <p><strong>Drop your photo here</strong> or click to browse</p>
+      <p class="dropzone-hint">Best: full body · facing forward · plain background</p>
+      <input type="file" id="personFileInput" accept=".jpg,.jpeg,.png,.webp" hidden>
+    </div>
+
+    <!-- Grid -->
+    <div class="item-grid" id="personGrid">
+      {% if not person_photos %}
+      <div class="empty-state" id="personEmpty">
+        <i class="bi bi-person-slash empty-icon"></i>
+        <p class="empty-title">No photos yet</p>
+        <p class="empty-sub">Add a photo so you can try clothes on in the Dressing Room.</p>
+      </div>
+      {% endif %}
+
+      {% for photo in person_photos %}
+      <div class="item-col" id="pp-{{ photo.id }}">
+        <div class="item-card person-card">
+          <div class="item-card-img person-card-img">
+            {% if photo.processed_filename %}
+            <img src="{{ url_for('static', filename='uploads/person_processed/' ~ photo.processed_filename) }}"
+                 alt="{{ photo.name }}" loading="lazy">
+            {% else %}
+            <div class="item-placeholder"><i class="bi bi-person"></i></div>
+            {% endif %}
+
+            <div class="item-card-overlay">
+              <a class="btn-icon-accent"
+                 href="{{ url_for('dressing_room', person_id=photo.id) }}"
+                 title="Open in Dressing Room">
+                <i class="bi bi-scissors"></i>
+              </a>
+              <button class="btn-icon-red" onclick="deletePerson({{ photo.id }})" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+            {% if photo.pose_data %}
+            <span class="pose-badge">
+              <i class="bi bi-person-check me-1"></i>Pose Ready
+            </span>
+            {% endif %}
+          </div>
+          <div class="item-card-foot">
+            <p class="item-name" title="{{ photo.name }}">{{ photo.name }}</p>
+            <span class="item-cat" style="color:{% if photo.pose_data %}var(--success){% else %}var(--text-muted){% endif %}">
+              {% if photo.pose_data %}Auto-placement on{% else %}No pose data{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div><!-- /page-wrap -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Add clothing                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="dr-modal-backdrop" id="modalAddClothing" hidden>
+  <div class="dr-modal" role="dialog" aria-modal="true">
+    <div class="dr-modal-header">
+      <h3 class="dr-modal-title">Add to Wardrobe</h3>
+      <button class="dr-modal-close" onclick="closeModal('modalAddClothing')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="dr-modal-body">
+      <img id="clothingPreviewImg" class="upload-preview" src="" alt="Preview" hidden>
+      <div class="dr-form-group">
+        <label class="dr-label" for="clothingName">Item name</label>
+        <input id="clothingName" class="dr-input" type="text" placeholder="e.g. Blue Linen Blazer">
+      </div>
+      <div class="dr-form-group">
+        <label class="dr-label" for="clothingCategory">Category</label>
+        <select id="clothingCategory" class="dr-input">
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+          <option value="full_outfit">Full Outfit</option>
+          <option value="outerwear">Outerwear</option>
+          <option value="shoes">Shoes</option>
+          <option value="accessory">Accessory</option>
+        </select>
+      </div>
+      <div class="dr-processing-note" id="clothingProcessing" hidden>
+        <i class="bi bi-cpu me-2"></i>Removing background… 5–20 s on first run.
+      </div>
+    </div>
+    <div class="dr-modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalAddClothing')">Cancel</button>
+      <button class="btn-accent" id="btnSubmitClothing">Add to Wardrobe</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add person photo -->
+<div class="dr-modal-backdrop" id="modalAddPerson" hidden>
+  <div class="dr-modal" role="dialog" aria-modal="true">
+    <div class="dr-modal-header">
+      <h3 class="dr-modal-title">Add Your Photo</h3>
+      <button class="dr-modal-close" onclick="closeModal('modalAddPerson')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="dr-modal-body">
+      <img id="personPreviewImg" class="upload-preview" src="" alt="Preview" hidden>
+      <div class="dr-form-group">
+        <label class="dr-label" for="personName">Label (optional)</label>
+        <input id="personName" class="dr-input" type="text" placeholder="e.g. Summer look base">
+      </div>
+      <div class="dr-info-box">
+        <i class="bi bi-lightbulb me-2"></i>
+        Full body · facing forward · plain background gives the best results.
+      </div>
+      <div class="dr-processing-note" id="personProcessing" hidden>
+        <i class="bi bi-cpu me-2"></i>Processing photo… removing background &amp; detecting pose — 10–30 s.
+      </div>
+    </div>
+    <div class="dr-modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalAddPerson')">Cancel</button>
+      <button class="btn-accent" id="btnSubmitPerson">Process Photo</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/wardrobe.js') }}"></script>
+{% endblock %}

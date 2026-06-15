@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% set active = "dressing_room" %}
+{% block title %}Dressing Room — DressRoom{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dressing_room.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Pass Python data to JS via data attributes -->
+<div id="dr-data"
+     data-person-id="{{ person_photo.id }}"
+     data-person-url="{{ url_for('static', filename='uploads/person_processed/' ~ person_photo.processed_filename) }}"
+     hidden>
+</div>
+
+<div class="dr-room-wrap">
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- LEFT: Wardrobe sidebar                                               -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <aside class="dr-sidebar" id="drSidebar">
+    <div class="dr-sidebar-head">
+      <span class="dr-sidebar-title">Wardrobe</span>
+      <!-- Category filter inside sidebar -->
+      <div class="dr-sidebar-filters" id="sidebarFilters">
+        <button class="sf-pill active" data-cat="all">All</button>
+        <button class="sf-pill" data-cat="top">Tops</button>
+        <button class="sf-pill" data-cat="bottom">Bottoms</button>
+        <button class="sf-pill" data-cat="outerwear">Coats</button>
+        <button class="sf-pill" data-cat="shoes">Shoes</button>
+        <button class="sf-pill" data-cat="accessory">Acc.</button>
+      </div>
+    </div>
+
+    <div class="dr-sidebar-items" id="sidebarItems">
+      {% if not clothing_items %}
+      <div class="sidebar-empty">
+        <i class="bi bi-bag-x"></i>
+        <p>No clothes yet. <a href="{{ url_for('wardrobe') }}">Add some →</a></p>
+      </div>
+      {% endif %}
+
+      {% for item in clothing_items %}
+      <div class="sidebar-item"
+           draggable="true"
+           data-id="{{ item.id }}"
+           data-url="{{ url_for('static', filename='uploads/clothing_processed/' ~ item.processed_filename) }}"
+           data-cat="{{ item.category }}"
+           data-name="{{ item.name }}">
+        <div class="sidebar-item-thumb">
+          {% if item.thumbnail_filename %}
+          <img src="{{ url_for('static', filename='uploads/clothing_processed/' ~ item.thumbnail_filename) }}"
+               alt="{{ item.name }}" loading="lazy">
+          {% else %}
+          <div class="item-placeholder-sm"><i class="bi bi-image"></i></div>
+          {% endif %}
+        </div>
+        <div class="sidebar-item-info">
+          <p class="sidebar-item-name">{{ item.name }}</p>
+          <span class="sidebar-item-cat">{{ item.category.replace('_',' ').title() }}</span>
+        </div>
+        <!-- Mobile: tap + button instead of drag -->
+        <button class="sidebar-add-btn" title="Add to canvas"
+                onclick="sidebarAddItem({{ item.id }}, '{{ url_for('static', filename='uploads/clothing_processed/' ~ item.processed_filename) }}', '{{ item.category }}', '{{ item.name }}')">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- CENTRE: Canvas                                                       -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="dr-canvas-area">
+
+    <!-- Toolbar -->
+    <div class="dr-toolbar">
+      <button class="tb-btn" id="btnDeleteSelected" title="Remove selected item (Del)">
+        <i class="bi bi-trash"></i><span class="tb-label"> Remove</span>
+      </button>
+      <div class="tb-divider"></div>
+      <button class="tb-btn" id="btnBringFwd" title="Bring forward">
+        <i class="bi bi-layer-forward"></i><span class="tb-label"> Forward</span>
+      </button>
+      <button class="tb-btn" id="btnSendBack" title="Send backward">
+        <i class="bi bi-layer-backward"></i><span class="tb-label"> Back</span>
+      </button>
+      <div class="tb-divider"></div>
+      <button class="tb-btn tb-btn-clear" id="btnClearAll" title="Clear all clothing">
+        <i class="bi bi-x-circle"></i><span class="tb-label"> Clear all</span>
+      </button>
+      <div class="tb-divider"></div>
+      <button class="tb-btn tb-btn-save" id="btnSaveOutfit">
+        <i class="bi bi-floppy"></i><span class="tb-label"> Save Outfit</span>
+      </button>
+      <!-- Back to wardrobe -->
+      <a class="tb-btn ms-auto" href="{{ url_for('wardrobe') }}" title="Back to Wardrobe">
+        <i class="bi bi-collection"></i><span class="tb-label"> Wardrobe</span>
+      </a>
+    </div>
+
+    <!-- Canvas container -->
+    <div class="dr-canvas-outer">
+      <div id="canvasContainer" class="dr-canvas-container">
+        <canvas id="dressingCanvas"></canvas>
+
+        <!-- Drop hint overlay (desktop drag) -->
+        <div id="dropHint" class="drop-hint" hidden>
+          <i class="bi bi-arrow-down-circle-fill fs-2 mb-2"></i>
+          <p>Drop to try on</p>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="canvasLoading" class="canvas-loading" hidden>
+          <div class="spinner-ring"></div>
+          <p>Placing item…</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- RIGHT: Saved outfits panel                                          -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <aside class="dr-panel">
+    <div class="dr-panel-section">
+      <p class="dr-panel-label">Photo</p>
+      <p class="dr-panel-value">{{ person_photo.name }}</p>
+      <a class="btn-ghost btn-sm w-100 mt-1"
+         href="{{ url_for('dressing_room_select') }}">
+        <i class="bi bi-arrow-left-right me-1"></i>Switch Photo
+      </a>
+    </div>
+
+    <div class="dr-panel-section">
+      <p class="dr-panel-label">Saved Outfits</p>
+      <div id="outfitList" class="outfit-list">
+        {% if not saved_outfits %}
+        <p class="outfit-empty">No saved outfits yet. Style something and hit Save!</p>
+        {% endif %}
+        {% for outfit in saved_outfits %}
+        <div class="outfit-row" id="outfit-{{ outfit.id }}">
+          <button class="outfit-load-btn" onclick="loadOutfit({{ outfit.id }})">
+            {{ outfit.name }}
+          </button>
+          <button class="outfit-del-btn" onclick="deleteOutfit({{ outfit.id }})" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="dr-panel-tip">
+      <i class="bi bi-info-circle me-1"></i>
+      <strong>Desktop:</strong> drag items from the left onto the canvas.<br>
+      <strong>Mobile:</strong> tap the <i class="bi bi-plus-lg"></i> button on any item.
+    </div>
+  </aside>
+
+</div><!-- /dr-room-wrap -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Save outfit name                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="dr-modal-backdrop" id="modalSaveOutfit" hidden>
+  <div class="dr-modal dr-modal-sm" role="dialog" aria-modal="true">
+    <div class="dr-modal-header">
+      <h3 class="dr-modal-title">Save Outfit</h3>
+      <button class="dr-modal-close" onclick="closeModal('modalSaveOutfit')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="dr-modal-body">
+      <div class="dr-form-group">
+        <label class="dr-label" for="outfitNameInput">Outfit name</label>
+        <input id="outfitNameInput" class="dr-input" type="text"
+               placeholder="e.g. Casual Friday" maxlength="80">
+      </div>
+    </div>
+    <div class="dr-modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modalSaveOutfit')">Cancel</button>
+      <button class="btn-accent" id="btnConfirmSave">Save</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Fabric.js — canvas interaction library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="{{ url_for('static', filename='js/dressing_room.js') }}"></script>
+{% endblock %}
