@@ -15,10 +15,15 @@ import os
 import uuid
 import shutil
 import logging
+import importlib.util
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Cached after the first check so we don't re-probe on every single upload.
+_rembg_checked = False
+_rembg_usable  = False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,11 +59,43 @@ def _save_raw(file_obj, directory):
 # Background removal
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _rembg_is_usable():
+    """
+    Check once whether rembg can actually run (it needs the onnxruntime
+    package installed separately). Cached so we only probe once per process.
+    """
+    global _rembg_checked, _rembg_usable
+    if _rembg_checked:
+        return _rembg_usable
+
+    _rembg_checked = True
+    has_rembg       = importlib.util.find_spec("rembg") is not None
+    has_onnxruntime = importlib.util.find_spec("onnxruntime") is not None
+
+    if not has_rembg:
+        logger.warning("rembg not installed — background removal disabled. "
+                        "Run: pip install rembg")
+        _rembg_usable = False
+    elif not has_onnxruntime:
+        logger.warning("rembg is installed but onnxruntime is missing — background "
+                        "removal disabled. Run: pip install \"rembg[cpu]\"")
+        _rembg_usable = False
+    else:
+        _rembg_usable = True
+
+    return _rembg_usable
+
+
 def remove_background(image_path):
     """
     Remove the background from image_path and return the path to a new PNG.
-    Falls back to the original file if rembg is unavailable.
+    Falls back to the original file if rembg/onnxruntime are unavailable or
+    if anything goes wrong — uploads should never fail just because background
+    removal isn't working.
     """
+    if not _rembg_is_usable():
+        return image_path
+
     try:
         from rembg import remove
         with open(image_path, "rb") as f:
@@ -68,11 +105,16 @@ def remove_background(image_path):
             f.write(result)
         logger.info(f"Background removed → {os.path.basename(out_path)}")
         return out_path
-    except ImportError:
-        logger.warning("rembg not installed — skipping background removal.")
-        return image_path
     except Exception as e:
+        # Normal Python errors — log and fall back to original image.
         logger.error(f"Background removal failed: {e}")
+        return image_path
+    except BaseException as e:
+        # Some backends (e.g. rembg without onnxruntime) raise SystemExit or
+        # other non-Exception errors instead of a normal exception. Catching
+        # this prevents the whole request from dying silently — the upload
+        # still succeeds, just without background removal.
+        logger.error(f"Background removal crashed unexpectedly ({type(e).__name__}): {e}")
         return image_path
 
 
