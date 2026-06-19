@@ -130,8 +130,12 @@ The code is structured to make changes straightforward:
 
 ## Acknowledgements
 
-- [Flask](https://flask.palletsprojects.com/)
-- [rembg](https://github.com/danielgatis/rembg) — background removal
-- [MediaPipe](https://google.github.io/mediapipe/) — pose detection
-- [Fabric.js](http://fabricjs.com/) — canvas interactions
-- [Bootstrap 5](https://getbootstrap.com/) + [Bootstrap Icons](https://icons.getbootstrap.com/)
+- Flask — web framework
+- Flask-SQLAlchemy / SQLAlchemy — database ORM
+- rembg — AI-powered background removal
+- MediaPipe — body pose detection
+- OpenCV — image processing utilities
+- Pillow — image manipulation
+- Fabric.js — interactive HTML5 canvas
+- Bootstrap 5 — UI components and styling
+- Bootstrap Icons — icon set
