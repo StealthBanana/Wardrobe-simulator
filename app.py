@@ -53,18 +53,9 @@ def _ensure_upload_dirs():
         os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], sub), exist_ok=True)
 
 
-def _seed_defaults_if_empty():
-    """Add the starter wardrobe on very first launch."""
-    if ClothingItem.query.count() == 0:
-        from utils.default_wardrobe import seed_default_wardrobe
-        seed_default_wardrobe(app.config["UPLOAD_FOLDER"])
-        logger.info("Starter wardrobe seeded.")
-
-
 with app.app_context():
     _ensure_upload_dirs()
     db.create_all()
-    _seed_defaults_if_empty()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
