@@ -1,0 +1,9 @@
+# Uploads
+static/uploads/
+
+# SQLite databases
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
