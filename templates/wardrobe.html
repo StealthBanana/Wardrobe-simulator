@@ -192,15 +192,29 @@
           <option value="accessory">Accessory (hat, bag, belt)</option>
         </select>
       </div>
-      <!-- Tip about clothing photo quality -->
-      <div class="dr-info-box">
-        <i class="bi bi-lightbulb me-2" style="flex-shrink:0"></i>
-        <span>
-          <strong>Best results:</strong> flat-lay or hanger photos on a plain background.
-          <br>Avoid photos of people wearing the clothes — the whole person
-          will be composited, not just the garment.
-        </span>
+
+      <!-- Clothing photo guidance -->
+      <div class="dr-info-box" style="flex-direction:column; gap:.6rem;">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <i class="bi bi-lightbulb" style="flex-shrink:0; color:var(--accent);"></i>
+          <strong style="color:var(--text-primary);">Photo requirements for best results</strong>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:.35rem; font-size:.8rem; color:var(--text-secondary);">
+          <div><i class="bi bi-check-circle me-2" style="color:var(--success)"></i>
+            <strong>Do:</strong> photo of just the clothing item by itself — laid flat on a surface, hung on a hanger, or on a plain mannequin</div>
+          <div><i class="bi bi-check-circle me-2" style="color:var(--success)"></i>
+            <strong>Do:</strong> plain or simple background (white, grey, or light solid colour)</div>
+          <div><i class="bi bi-check-circle me-2" style="color:var(--success)"></i>
+            <strong>Do:</strong> good lighting with the full garment visible</div>
+          <div><i class="bi bi-x-circle me-2" style="color:var(--danger)"></i>
+            <strong>Don't:</strong> photos of a person wearing the clothing — the entire person silhouette will be composited, not just the garment</div>
+          <div><i class="bi bi-x-circle me-2" style="color:var(--danger)"></i>
+            <strong>Don't:</strong> busy or cluttered backgrounds — background removal will struggle and leave artifacts</div>
+          <div><i class="bi bi-x-circle me-2" style="color:var(--danger)"></i>
+            <strong>Don't:</strong> heavily folded, crumpled, or partially visible items — the shape won't warp correctly onto your body</div>
+        </div>
       </div>
+
       <div class="dr-processing-note" id="clothingProcessing" hidden>
         <i class="bi bi-cpu me-2"></i>Removing background… 5–20 s on first run.
       </div>
